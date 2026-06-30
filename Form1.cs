@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;              // Для работы с файлами
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Practika   // Убедитесь, что пространство имён совпадает с вашим проектом
+namespace Practika
 {
     public partial class Form1 : Form
     {
@@ -86,26 +87,24 @@ namespace Practika   // Убедитесь, что пространство им
 
             int year = dateTimePickerYear.Value.Year;
 
-            // ---- ИЗМЕНЕНИЕ 1: Проверка года ----
+            // Проверка года
             if (year < 1900 || year > 2100)
             {
                 MessageBox.Show("Пожалуйста, выберите год от 1900 до 2100.", "Некорректный год", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // ---- ИЗМЕНЕНИЕ 2: Блокировка кнопки и изменение текста ----
+            // Блокировка кнопки и изменение текста
             buttonGetHolidays.Enabled = false;
             buttonGetHolidays.Text = "Загрузка...";
 
             listBoxHolidays.Items.Clear();
             listBoxHolidays.Items.Add("Загрузка...");
 
-            // Формируем URL для запроса к API
             string url = $"https://date.nager.at/api/v3/PublicHolidays/{year}/{countryCode}";
 
             try
             {
-                // Отправляем GET-запрос к API
                 var response = await httpClient.GetAsync(url);
                 if (!response.IsSuccessStatusCode)
                 {
@@ -116,7 +115,6 @@ namespace Practika   // Убедитесь, что пространство им
                 }
 
                 string json = await response.Content.ReadAsStringAsync();
-                // Десериализуем JSON в список праздников
                 var holidays = JsonConvert.DeserializeObject<List<Holiday>>(json);
 
                 listBoxHolidays.Items.Clear();
@@ -127,7 +125,6 @@ namespace Practika   // Убедитесь, что пространство им
                     return;
                 }
 
-                // ---- ИЗМЕНЕНИЕ 5: Вывод количества праздников ----
                 listBoxHolidays.Items.Add($"Найдено праздников: {holidays.Count}");
                 listBoxHolidays.Items.Add("-----------------------------");
 
@@ -143,21 +140,57 @@ namespace Practika   // Убедитесь, что пространство им
             }
             finally
             {
-                // ---- ИЗМЕНЕНИЕ 2 (окончание): Разблокировка кнопки ----
                 buttonGetHolidays.Enabled = true;
                 buttonGetHolidays.Text = "Получить";
             }
         }
+
+        // НОВОЕ: Сохранение списка праздников в текстовый файл
+        private void buttonSave_Click(object sender, EventArgs e)
+        {
+            // Проверяем, есть ли данные для сохранения
+            if (listBoxHolidays.Items.Count == 0 || listBoxHolidays.Items[0].ToString() == "Загрузка...")
+            {
+                MessageBox.Show("Нет данных для сохранения. Сначала получите список праздников.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Диалог выбора места сохранения
+            using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+            {
+                saveFileDialog.Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*";
+                saveFileDialog.DefaultExt = "txt";
+                saveFileDialog.FileName = $"Holidays_{comboBoxCountry.Text}_{dateTimePickerYear.Value.Year}.txt";
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        // Сохраняем все строки из ListBox в файл
+                        string[] lines = new string[listBoxHolidays.Items.Count];
+                        for (int i = 0; i < listBoxHolidays.Items.Count; i++)
+                        {
+                            lines[i] = listBoxHolidays.Items[i].ToString();
+                        }
+                        File.WriteAllLines(saveFileDialog.FileName, lines);
+
+                        MessageBox.Show($"Файл успешно сохранён:\n{saveFileDialog.FileName}", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
     }
 
-    // Класс для хранения данных о стране
     public class Country
     {
         public string Name { get; set; }
         public string Code { get; set; }
     }
 
-    // Класс для десериализации праздника
     public class Holiday
     {
         [JsonProperty("date")]
