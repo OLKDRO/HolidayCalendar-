@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;              // Для работы с файлами
+using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -20,13 +20,11 @@ namespace Practika
             this.Shown += Form1_Shown;
         }
 
-        // Загрузка списка стран при появлении формы
         private async void Form1_Shown(object sender, EventArgs e)
         {
             await LoadCountriesAsync();
         }
 
-        // Метод для загрузки стран из API Nager.Date
         private async Task LoadCountriesAsync()
         {
             try
@@ -66,10 +64,8 @@ namespace Practika
             }
         }
 
-        // Обработчик нажатия кнопки "Получить"
         private async void buttonGetHolidays_Click(object sender, EventArgs e)
         {
-            // Проверка: выбрана ли страна
             if (comboBoxCountry.SelectedItem == null)
             {
                 MessageBox.Show("Выберите страну из списка.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -87,14 +83,12 @@ namespace Practika
 
             int year = dateTimePickerYear.Value.Year;
 
-            // Проверка года
             if (year < 1900 || year > 2100)
             {
                 MessageBox.Show("Пожалуйста, выберите год от 1900 до 2100.", "Некорректный год", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // Блокировка кнопки и изменение текста
             buttonGetHolidays.Enabled = false;
             buttonGetHolidays.Text = "Загрузка...";
 
@@ -145,17 +139,14 @@ namespace Practika
             }
         }
 
-        // НОВОЕ: Сохранение списка праздников в текстовый файл
         private void buttonSave_Click(object sender, EventArgs e)
         {
-            // Проверяем, есть ли данные для сохранения
             if (listBoxHolidays.Items.Count == 0 || listBoxHolidays.Items[0].ToString() == "Загрузка...")
             {
                 MessageBox.Show("Нет данных для сохранения. Сначала получите список праздников.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // Диалог выбора места сохранения
             using (SaveFileDialog saveFileDialog = new SaveFileDialog())
             {
                 saveFileDialog.Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*";
@@ -166,7 +157,6 @@ namespace Practika
                 {
                     try
                     {
-                        // Сохраняем все строки из ListBox в файл
                         string[] lines = new string[listBoxHolidays.Items.Count];
                         for (int i = 0; i < listBoxHolidays.Items.Count; i++)
                         {
@@ -182,6 +172,16 @@ namespace Practika
                     }
                 }
             }
+        }
+
+        // ИЗМЕНЁННЫЙ ОБРАБОТЧИК: сброс года на текущий
+        private void buttonClear_Click(object sender, EventArgs e)
+        {
+            listBoxHolidays.Items.Clear();
+            // Сбрасываем год на текущий
+            dateTimePickerYear.Value = DateTime.Now;
+            // (Опционально) сбросить выбор страны:
+            // comboBoxCountry.SelectedIndex = -1;
         }
     }
 
